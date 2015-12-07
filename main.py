@@ -111,6 +111,7 @@ class LCDUI:
                 line1 = "  " + line1
                 line2 = "> " + line2
 
+        self.lcd.clear()
         self.lcd.message(line1 + "\n" + line2)
  
     def turn_on(self):
@@ -153,7 +154,7 @@ class LCDUI:
         self.index = 0
         self.top_selected = True
         self.selectable = True
-        # TODO self.content = ? format text data into menu
+        self.content = ["{}-{}".format(text['date'], text['name'] for text in self.server.data['texts'])]
         self.display()
 
     def open_call_menu(self):
@@ -161,23 +162,29 @@ class LCDUI:
         self.index = 0
         self.top_selected = True
         self.selectable = True
-        # TODO self.content = ? format call data into menu
+        self.content = ["{}-{}".format(call['time'], call['name'] for call in self.server.data['texts'])]
         self.display()
 
     def text_menu_select(self):
+        text = self.server.data['text'][self.index]
         self.state = UIState.text_display
         self.index = 0
         self.top_selected = True
         self.selectable = False
-        # TODO self.content = ? format text data into lines
+        self.content = [text['body'][i:i+16] for i in range(0, len(text['body]']), 16)]
         self.display()
 
     def call_menu_select(self):
+        call = self.server.data['calls'][self.index]
         self.state = UIState.call_display
         self.index = 0
         self.top_selected = True
         self.selectable = False
-        # TODO self.content = ? format call data into lines
+        self.content = [
+                call['time'],
+                call['name'],
+                call['callNumber']
+            ]
         self.display()
 
     def main_loop(server):
