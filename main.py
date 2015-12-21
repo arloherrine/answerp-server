@@ -1,12 +1,11 @@
 import copy
-import enum
 import json
-import socketserver
+import SocketServer
 import threading
 import time
 import Adafruit_CharLCD as LCD
 
-class AnswerpTCPHandler(socketserver.StreamRequestHandler):
+class AnswerpTCPHandler(SocketServer.StreamRequestHandler):
     """
     The RequestHandler class for our server.
 
@@ -16,6 +15,15 @@ class AnswerpTCPHandler(socketserver.StreamRequestHandler):
     """
     def __init__(self):
         self.server.data = {}
+	self.server.data = {'calls': [
+			{},
+			{},
+		],
+		'texts': [
+			{},
+			{},
+		]}
+
 
     def handle(self):
         # self.request is the TCP socket connected to the client
@@ -44,18 +52,10 @@ class AnswerpTCPHandler(socketserver.StreamRequestHandler):
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
 
-class UIState(enum.Enum):
-    off = 1
-    main_menu = 2
-    call_menu = 3
-    call_display = 4
-    text_menu = 5
-    text_display = 6
-
 
 class LCDUI:
     def __init__(self, *args, **keywords):
-        self.state = UIState.off
+        self.state = 'off'
         self.lcd = LCD.Adafruit_CharLCDPlate()
         self.top_selected = True
         self.content = ['','']
@@ -63,34 +63,34 @@ class LCDUI:
         self.callbacks = {}
         self.selectable = True
 
-        self.register_callback((UIState.main_menu, LCD.SELECT, True), self.turn_off)
-        self.register_callback((UIState.call_menu, LCD.SELECT, True), self.turn_off)
-        self.register_callback((UIState.call_display, LCD.SELECT, True), self.turn_off)
-        self.register_callback((UIState.text_menu, LCD.SELECT, True), self.turn_off)
-        self.register_callback((UIState.text_display, LCD.SELECT, True), self.turn_off)
+        self.register_callback('main_menu', LCD.SELECT, True, self.turn_off)
+        self.register_callback('call_menu', LCD.SELECT, True, self.turn_off)
+        self.register_callback('call_display', LCD.SELECT, True, self.turn_off)
+        self.register_callback('text_menu', LCD.SELECT, True, self.turn_off)
+        self.register_callback('text_display', LCD.SELECT, True, self.turn_off)
 
-        self.register_callback((UIState.off, LCD.SELECT, False), self.turn_on)
-        self.register_callback((UIState.off, LCD.SELECT, True), self.turn_on)
+        self.register_callback('off', LCD.SELECT, False, self.turn_on)
+        self.register_callback('off', LCD.SELECT, True, self.turn_on)
 
-        self.register_callback((UIState.main_menu, LCD.UP, False), self.scroll_up)
-        self.register_callback((UIState.main_menu, LCD.DOWN, False), self.scroll_down)
-        self.register_callback((UIState.main_menu, LCD.SELECT, False), self.main_menu_select)
+        self.register_callback('main_menu', LCD.UP, False, self.scroll_up)
+        self.register_callback('main_menu', LCD.DOWN, False, self.scroll_down)
+        self.register_callback('main_menu', LCD.SELECT, False, self.main_menu_select)
 
-        self.register_callback((UIState.call_menu, LCD.UP, False), self.scroll_up)
-        self.register_callback((UIState.call_menu, LCD.DOWN, False), self.scroll_down)
-        self.register_callback((UIState.call_menu, LCD.SELECT, False), self.call_menu_select)
+        self.register_callback('call_menu', LCD.UP, False, self.scroll_up)
+        self.register_callback('call_menu', LCD.DOWN, False, self.scroll_down)
+        self.register_callback('call_menu', LCD.SELECT, False, self.call_menu_select)
 
-        self.register_callback((UIState.text_menu, LCD.UP, False), self.scroll_up)
-        self.register_callback((UIState.text_menu, LCD.DOWN, False), self.scroll_down)
-        self.register_callback((UIState.text_menu, LCD.SELECT, False), self.text_menu_select)
+        self.register_callback('text_menu', LCD.UP, False, self.scroll_up)
+        self.register_callback('text_menu', LCD.DOWN, False, self.scroll_down)
+        self.register_callback('text_menu', LCD.SELECT, False, self.text_menu_select)
 
-        self.register_callback((UIState.call_display, LCD.UP, False), self.scroll_up)
-        self.register_callback((UIState.call_display, LCD.DOWN, False), self.scroll_down)
-        self.register_callback((UIState.call_display, LCD.SELECT, False), self.self.open_call_menu)
+        self.register_callback('call_display', LCD.UP, False, self.scroll_up)
+        self.register_callback('call_display', LCD.DOWN, False, self.scroll_down)
+        self.register_callback('call_display', LCD.SELECT, False, self.open_call_menu)
 
-        self.register_callback((UIState.text_display, LCD.UP, False), self.scroll_up)
-        self.register_callback((UIState.text_display, LCD.DOWN, False), self.scroll_down)
-        self.register_callback((UIState.text_display, LCD.SELECT, False), self.self.open_text_menu)
+        self.register_callback('text_display', LCD.UP, False, self.scroll_up)
+        self.register_callback('text_display', LCD.DOWN, False, self.scroll_down)
+        self.register_callback('text_display', LCD.SELECT, False, self.open_text_menu)
 
     def register_callback(self, state, button, long, func):
         self.callbacks.setdefault((button, long), []).append(func)
@@ -116,7 +116,7 @@ class LCDUI:
  
     def turn_on(self):
         self.lcd.set_backlight(1)
-        self.state = UIState.main_menu
+        self.state = 'main_menu'
         self.top_selected = True
         self.index = 0
         self.content = ['{} new texts'.format(len(self.server.data['texts'])),
@@ -127,7 +127,7 @@ class LCDUI:
     def turn_off(self):
         self.lcd.set_backlight(0)
         self.lcd.clear()
-        self.state = UIState.off
+        self.state = 'off'
         self.context = ['','']
 
     def scroll_up(self):
@@ -136,7 +136,7 @@ class LCDUI:
             self.index -= 1
         self.display()
 
-    def scroll_up(self):
+    def scroll_down(self):
         self.top_selected = not self.selectable
         self.index += 1
         if self.index >= len(self.content):
@@ -150,7 +150,7 @@ class LCDUI:
             self.open_call_menu()    
 
     def open_text_menu(self):
-        self.state = UIState.text_menu
+        self.state = 'text_menu'
         self.index = 0
         self.top_selected = True
         self.selectable = True
@@ -158,7 +158,7 @@ class LCDUI:
         self.display()
 
     def open_call_menu(self):
-        self.state = UIState.call_menu
+        self.state = 'call_menu'
         self.index = 0
         self.top_selected = True
         self.selectable = True
@@ -167,7 +167,7 @@ class LCDUI:
 
     def text_menu_select(self):
         text = self.server.data['text'][self.index]
-        self.state = UIState.text_display
+        self.state = 'text_display'
         self.index = 0
         self.top_selected = True
         self.selectable = False
@@ -176,7 +176,7 @@ class LCDUI:
 
     def call_menu_select(self):
         call = self.server.data['calls'][self.index]
-        self.state = UIState.call_display
+        self.state = 'call_display'
         self.index = 0
         self.top_selected = True
         self.selectable = False
