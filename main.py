@@ -15,13 +15,14 @@ class AnswerpTCPHandler(SocketServer.StreamRequestHandler):
     """
     def __init__(self):
         self.server.data = {}
+	# This is just for testing
 	self.server.data = {'calls': [
-			{},
-			{},
+			{'time': '01:31', 'name': 'Jeff', 'callNumber': '610-777-3340'},
+			{'time': '11:28', 'name': 'Mary', 'callNumber': '512-345-8750'},
 		],
 		'texts': [
-			{},
-			{},
+			{'date': '03:52', 'name': 'Mimi Bonney', 'body': 'Hey there, what is up?'},
+			{'date': '08:17', 'name': 'Steven F. Stephenson', 'body': 'This is a very long text from your friend steve who has a long stupid name and sends long texts'},
 		]}
 
 
@@ -93,7 +94,8 @@ class LCDUI:
         self.register_callback('text_display', LCD.SELECT, False, self.open_text_menu)
 
     def register_callback(self, state, button, long, func):
-        self.callbacks.setdefault((button, long), []).append(func)
+        self.callbacks.setdefault((button, long), [])
+	self.callbacks.get((button, long)).append(func)
 
     def display(self):
         if self.top_selected:
@@ -154,7 +156,7 @@ class LCDUI:
         self.index = 0
         self.top_selected = True
         self.selectable = True
-        self.content = ["{}-{}".format(text['date'], text['name'] for text in self.server.data['texts'])]
+        self.content = ["{}-{}".format(text['date'], text['name']) for text in self.server.data['texts']]
         self.display()
 
     def open_call_menu(self):
@@ -162,7 +164,7 @@ class LCDUI:
         self.index = 0
         self.top_selected = True
         self.selectable = True
-        self.content = ["{}-{}".format(call['time'], call['name'] for call in self.server.data['texts'])]
+        self.content = ["{}-{}".format(call['time'], call['name']) for call in self.server.data['texts']]
         self.display()
 
     def text_menu_select(self):
