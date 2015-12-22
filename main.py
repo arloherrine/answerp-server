@@ -62,6 +62,13 @@ class LCDUI:
         self.content = ['','']
         self.index = 0
         self.callbacks = {}
+        self.timers = {
+                LCD.UP: 0,    
+                LCD.DOWN: 0,    
+                LCD.LEFT: 0,    
+                LCD.RIGHT: 0,    
+                LCD.SELECT: 0,    
+            }
         self.selectable = True
 
         self.register_callback('main_menu', LCD.SELECT, True, self.turn_off)
@@ -191,9 +198,18 @@ class LCDUI:
 
     def main_loop(server):
         while(True):
-            # TODO implement
-            pass
+            for key in self.timers:
+                self.handle_key(key)
+            time.sleep(0.1)
 
+    def handle_key(key):
+        if self.lcd.is_pressed(key):
+            self.timers[key] += 1
+            if self.timers[key] == 10:
+                self.callbacks[(key, True)]()
+        elif self.timers[key]:
+            self.timers[key] = 0
+            self.callbacks[(key, False)]()
 
 
 if __name__ == "__main__":
